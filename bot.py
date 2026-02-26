@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import pandas as pd
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
@@ -8,7 +9,6 @@ from aiogram import F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
-import os
 TOKEN = os.getenv("BOT_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
@@ -42,14 +42,12 @@ async def handle_document(message: Message):
 
     words = user_words[message.from_user.id]
     results = []
+    avg_values = []  # сюда будем сохранять средние по словам
 
-    # Индексы столбцов по буквам Excel
+    # Индексы столбцов (по буквам Excel)
     col_F = 5     # F
     col_AI = 34   # AI
     col_AK = 36   # AK
-
-    # Общий фильтр AI > 0
-    df_positive = df[df.iloc[:, col_AI] > 0]
 
     for word in words:
         filtered = df[
@@ -60,22 +58,37 @@ async def handle_document(message: Message):
         if filtered.empty:
             results.append([word, None, None, None, None])
         else:
+            max_val = filtered.iloc[:, col_AK].max()
+            min_val = filtered.iloc[:, col_AK].min()
+            avg_val = filtered.iloc[:, col_AK].mean()
+            sum_val = filtered.iloc[:, col_AI].sum()
+
             results.append([
                 word,
-                filtered.iloc[:, col_AK].max(),
-                filtered.iloc[:, col_AK].min(),
-                filtered.iloc[:, col_AK].mean(),
-                filtered.iloc[:, col_AI].sum()
+                max_val,
+                min_val,
+                avg_val,
+                sum_val
             ])
 
-    # Добавляем общие показатели
-    total_sum_AI = df_positive.iloc[:, col_AI].sum()
-    total_avg_AK = df_positive.iloc[:, col_AK].mean()
+            # сохраняем среднее по слову
+            avg_values.append(avg_val)
 
+    # Общая сумма AI (по условию AI > 0)
+    df_positive = df[df.iloc[:, col_AI] > 0]
+    total_sum_AI = df_positive.iloc[:, col_AI].sum()
+
+    # 👉 СРЕДНЕЕ ПО СРЕДНИМ (главное изменение)
+    if avg_values:
+        average_of_averages = sum(avg_values) / len(avg_values)
+    else:
+        average_of_averages = None
+
+    # Добавляем итоговые строки
     results.append(["", "", "", "", ""])
     results.append(["ИТОГО", "", "", "", ""])
     results.append(["Общая сумма AI", "", "", "", total_sum_AI])
-    results.append(["Общее среднее AK", "", "", total_avg_AK, ""])
+    results.append(["Среднее по средним", "", "", average_of_averages, ""])
 
     result_df = pd.DataFrame(
         results,
@@ -101,4 +114,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
