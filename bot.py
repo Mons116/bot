@@ -55,17 +55,16 @@ groups = {
     ]
 }
 
-# Мягкие пастельные цвета
 group_colors = {
-    "Пальто": "FFF2CC",                     # светло-жёлтый
-    "Куртки": "F8CBAD",                     # персиковый
-    "двойка топ с завязками": "BDD7EE",     # голубой
-    "Песок": "FCE4D6",                      # песочный
-    "Шанель": "E2EFDA",                     # светло-зелёный
-    "Шорты": "D9E1F2"                       # светло-синий
+    "Пальто": "FFF2CC",
+    "Куртки": "F8CBAD",
+    "двойка топ с завязками": "BDD7EE",
+    "Песок": "FCE4D6",
+    "Шанель": "E2EFDA",
+    "Шорты": "D9E1F2"
 }
 
-# --------------------------------------------------
+# ---------------- СТАРТ ---------------- #
 
 @dp.message(Command("start"))
 async def start_handler(message: Message):
@@ -74,21 +73,37 @@ async def start_handler(message: Message):
         "Потом отправь Excel файл (.xlsx)"
     )
 
+# ---------------- ПРИЁМ СЛОВ ---------------- #
+
+@dp.message(F.text)
+async def save_words(message: Message):
+    words = [w.strip() for w in message.text.split(",")]
+    user_words[message.from_user.id] = words
+    await message.answer("Слова сохранены. Теперь отправь Excel файл.")
+
+# ---------------- ПРИЁМ ФАЙЛА ---------------- #
+
 @dp.message(F.document)
 async def handle_document(message: Message):
+
+    if message.from_user.id not in user_words:
+        await message.answer("Сначала отправь список слов.")
+        return
 
     if not message.document.file_name.endswith(".xlsx"):
         await message.answer("Нужен файл формата .xlsx")
         return
+
+    await message.answer("Файл получен. Обработка началась...")
 
     file = await bot.get_file(message.document.file_id)
     downloaded_file = await bot.download_file(file.file_path)
 
     df = pd.read_excel(downloaded_file)
 
-    col_F = 5     # F
-    col_AI = 34   # AI
-    col_AK = 36   # AK
+    col_F = 5
+    col_AI = 34
+    col_AK = 36
 
     results_by_group = {}
     avg_values = []
@@ -129,7 +144,6 @@ async def handle_document(message: Message):
     wb = Workbook()
     ws = wb.active
 
-    # Дата вчера
     yesterday = datetime.now() - timedelta(days=1)
     date_text = yesterday.strftime("%d.%m.%Y")
 
@@ -138,14 +152,12 @@ async def handle_document(message: Message):
     ws["A1"].font = Font(size=14, bold=True)
     ws["A1"].alignment = Alignment(horizontal="right")
 
-    # Заголовки
     ws.append(["Слово", "Макс.", "Мин.", "Среднее", "Доставки шт."])
 
     current_row = 3
 
     for group_name, rows in results_by_group.items():
 
-        # Название группы
         ws.cell(row=current_row, column=1, value=group_name)
         ws.cell(row=current_row, column=1).font = Font(bold=True)
         current_row += 1
@@ -158,17 +170,11 @@ async def handle_document(message: Message):
 
         for row_data in rows:
             for col_index, value in enumerate(row_data, start=1):
-                cell = ws.cell(
-                    row=current_row,
-                    column=col_index,
-                    value=value
-                )
+                cell = ws.cell(row=current_row, column=col_index, value=value)
                 cell.fill = fill
                 cell.alignment = Alignment(horizontal="center")
-
             current_row += 1
 
-    # Итоги
     current_row += 1
     ws.cell(row=current_row, column=1, value="Всего доставок шт.")
     ws.cell(row=current_row, column=5, value=total_sum)
@@ -177,7 +183,6 @@ async def handle_document(message: Message):
     ws.cell(row=current_row, column=1, value="Среднее от среднего")
     ws.cell(row=current_row, column=4, value=average_of_averages)
 
-    # Автоширина колонок
     for column in ws.columns:
         max_length = 0
         col_letter = column[0].column_letter
@@ -191,15 +196,10 @@ async def handle_document(message: Message):
 
     await message.answer_document(types.FSInputFile(file_name))
 
-
-@dp.message()
-async def get_words(message: Message):
-    await message.answer("Файл получен. Обработка началась...")
-
+# ---------------- ЗАПУСК ---------------- #
 
 async def main():
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
