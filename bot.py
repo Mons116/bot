@@ -2,12 +2,16 @@ import asyncio
 import logging
 import os
 import pandas as pd
+from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import Message
 from aiogram.filters import Command
 from aiogram import F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
+
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font
 
 TOKEN = os.getenv("BOT_TOKEN")
 
@@ -20,15 +24,12 @@ user_words = {}
 
 @dp.message(Command("start"))
 async def start_handler(message: Message):
-    await message.answer(
-        "Отправь слова через запятую.\n"
-        "Потом отправь Excel файл (.xlsx)"
-    )
+    await message.answer("Отправь слова через запятую, затем Excel файл.")
 
 @dp.message(F.document)
 async def handle_document(message: Message):
     if not message.document.file_name.endswith(".xlsx"):
-        await message.answer("Нужен файл формата .xlsx")
+        await message.answer("Нужен файл .xlsx")
         return
 
     if message.from_user.id not in user_words:
@@ -40,14 +41,14 @@ async def handle_document(message: Message):
 
     df = pd.read_excel(downloaded_file)
 
-    words = user_words[message.from_user.id]
-    results = []
-    avg_values = []  # сюда будем сохранять средние по словам
+    col_F = 5
+    col_AI = 34
+    col_AK = 36
 
-    # Индексы столбцов (по буквам Excel)
-    col_F = 5     # F
-    col_AI = 34   # AI
-    col_AK = 36   # AK
+    words = user_words[message.from_user.id]
+
+    results = []
+    avg_values = []
 
     for word in words:
         filtered = df[
@@ -56,50 +57,52 @@ async def handle_document(message: Message):
         ]
 
         if filtered.empty:
-            results.append([word, None, None, None, None])
+            max_val = min_val = avg_val = 0
+            sum_val = 0
         else:
             max_val = filtered.iloc[:, col_AK].max()
             min_val = filtered.iloc[:, col_AK].min()
             avg_val = filtered.iloc[:, col_AK].mean()
             sum_val = filtered.iloc[:, col_AI].sum()
 
-            results.append([
-                word,
-                max_val,
-                min_val,
-                avg_val,
-                sum_val
-            ])
+        results.append([word, max_val, min_val, avg_val, sum_val])
+        avg_values.append(avg_val)
 
-            # сохраняем среднее по слову
-            avg_values.append(avg_val)
+    # Общие показатели
+    total_sum = sum([r[4] for r in results])
+    average_of_averages = sum(avg_values) / len(avg_values) if avg_values else 0
 
-    # Общая сумма AI (по условию AI > 0)
-    df_positive = df[df.iloc[:, col_AI] > 0]
-    total_sum_AI = df_positive.iloc[:, col_AI].sum()
+    # Создание красивого Excel
+    wb = Workbook()
+    ws = wb.active
 
-    # 👉 СРЕДНЕЕ ПО СРЕДНИМ (главное изменение)
-    if avg_values:
-        average_of_averages = sum(avg_values) / len(avg_values)
-    else:
-        average_of_averages = None
+    # 📅 Дата вчера
+    yesterday = datetime.now() - timedelta(days=1)
+    date_text = yesterday.strftime("За %d %B")
 
-    # Добавляем итоговые строки
-    results.append(["", "", "", "", ""])
-    results.append(["ИТОГО", "", "", "", ""])
-    results.append(["Общая сумма AI", "", "", "", total_sum_AI])
-    results.append(["Среднее по средним", "", "", average_of_averages, ""])
+    ws["A1"] = date_text
+    ws["A1"].font = Font(size=14, bold=True)
 
-    result_df = pd.DataFrame(
-        results,
-        columns=["Слово", "Макс.", "Мин.", "Среднее.", "Сумма"]
-    )
+    headers = ["", "Max", "Min", "Average", "Доставки шт."]
+    ws.append(headers)
 
-    output_file = "result.xlsx"
-    result_df.to_excel(output_file, index=False)
+    row_num = 3
+    for row in results:
+        ws.append(row)
 
-    await message.answer_document(types.FSInputFile(output_file))
+    ws.append(["", "", "", "", ""])
+    ws.append(["Всего доставок шт.", "", "", "", total_sum])
+    ws.append(["Среднее от среднего", "", "", average_of_averages, ""])
 
+    # Выравнивание
+    for row in ws.iter_rows():
+        for cell in row:
+            cell.alignment = Alignment(horizontal="center")
+
+    file_name = "report.xlsx"
+    wb.save(file_name)
+
+    await message.answer_document(types.FSInputFile(file_name))
 
 @dp.message()
 async def get_words(message: Message):
@@ -107,10 +110,8 @@ async def get_words(message: Message):
     user_words[message.from_user.id] = words
     await message.answer("Слова сохранены. Теперь отправь Excel файл.")
 
-
 async def main():
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
