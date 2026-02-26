@@ -14,7 +14,7 @@ from aiogram.client.default import DefaultBotProperties
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = "8652958333:AAFKyjoTbzLM3oG8D7V3NxrUMgDQomUTWX0"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -183,13 +183,13 @@ async def handle_document(message: Message):
     ws.cell(row=current_row, column=1, value="Среднее от среднего")
     ws.cell(row=current_row, column=4, value=average_of_averages)
 
-    for column in ws.columns:
+    for column_cells in ws.iter_cols(min_row=2):
         max_length = 0
-        col_letter = column[0].column_letter
-        for cell in column:
-            if cell.value:
-                max_length = max(max_length, len(str(cell.value)))
-        ws.column_dimensions[col_letter].width = max_length + 2
+    for cell in column_cells:
+        if cell.value is not None:
+            max_length = max(max_length, len(str(cell.value)))
+    col_letter = column_cells[0].column_letter
+    ws.column_dimensions[col_letter].width = max_length + 2
 
     file_name = "result.xlsx"
     wb.save(file_name)
@@ -203,3 +203,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
