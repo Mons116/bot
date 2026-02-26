@@ -8,7 +8,8 @@ from aiogram import F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
-TOKEN = "8424122720:AAG8gR5D119GJKXFowDSBHD4vOOoDMAX2KI"
+import os
+TOKEN = os.getenv("BOT_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -100,3 +101,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
