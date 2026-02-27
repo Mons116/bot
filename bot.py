@@ -1,206 +1,193 @@
 import asyncio
 import logging
 import os
-import pandas as pd
 from datetime import datetime, timedelta
+from io import BytesIO
 
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import Message
-from aiogram.filters import Command
-from aiogram import F
-from aiogram.enums import ParseMode
+import pandas as pd
+from aiogram import Bot, Dispatcher, F
 from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.types import Message, BufferedInputFile
 
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
+from openpyxl.utils import get_column_letter  # ← НОВЫЙ ИМПОРТ
 
-TOKEN = "8652958333:AAFKyjoTbzLM3oG8D7V3NxrUMgDQomUTWX0"
+# ====================== НАСТРОЙКИ ======================
+TOKEN = os.getenv("BOT_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-dp = Dispatcher()
+storage = MemoryStorage()
+dp = Dispatcher(storage=storage)
 
-user_words = {}
-
-# ---------------- ГРУППЫ ---------------- #
-
+# ====================== ГРУППЫ И ЦВЕТА ======================
 groups = {
-    "Пальто": [
-        "drap_2-beige","drap_2-black","drap_2-grey",
-        "drap-beige","drap-brown","drap-grey","drap-black",
-        "coat-jacket-beige","coat-jacket-grey","coat-jacket-brown",
-        "drap_3(belt)-grey","drap_3(belt)-brown",
-        "drap_3(belt)-grafit","drap_3(belt)-beige"
-    ],
-    "Куртки": [
-        "suede-ohra","suede-milk","suede-brown",
-        "bomber-ohra","bomber-brown","bomber-milk"
-    ],
-    "двойка топ с завязками": [
-        "bows-blue","bows-cappuccino","bows-haki"
-    ],
-    "Песок": [
-        "costum-black","costum-blue","costum-brown",
-        "costum-green","costum-grey","costum-olive"
-    ],
-    "Шанель": [
-        "flax-beige","flax-blue","flax-brown",
-        "flax-green","flax-grey"
-    ],
-    "Шорты": [
-        "short1beige","short1blue","short1fuksia",
-        "short1green","short-haki","short-brown",
-        "short-black","short-mentol23"
-    ]
+    "Пальто": ["drap_2-beige","drap_2-black","drap_2-grey","drap-beige","drap-brown","drap-grey","drap-black","coat-jacket-beige","coat-jacket-grey","coat-jacket-brown","drap_3(belt)-grey","drap_3(belt)-brown","drap_3(belt)-grafit","drap_3(belt)-beige"],
+    "Куртки": ["suede-ohra","suede-milk","suede-brown","bomber-ohra","bomber-brown","bomber-milk"],
+    "двойка топ с завязками": ["bows-blue","bows-cappuccino","bows-haki"],
+    "Песок": ["costum-black","costum-blue","costum-brown","costum-green","costum-grey","costum-olive"],
+    "Шанель": ["flax-beige","flax-blue","flax-brown","flax-green","flax-grey"],
+    "Шорты": ["short1beige","short1blue","short1fuksia","short1green","short-haki","short-brown","short-black","short-mentol23"]
 }
 
 group_colors = {
-    "Пальто": "FFF2CC",
-    "Куртки": "F8CBAD",
-    "двойка топ с завязками": "BDD7EE",
-    "Песок": "FCE4D6",
-    "Шанель": "E2EFDA",
-    "Шорты": "D9E1F2"
+    "Пальто": "FFF2CC", "Куртки": "F8CBAD", "двойка топ с завязками": "BDD7EE",
+    "Песок": "FCE4D6", "Шанель": "E2EFDA", "Шорты": "D9E1F2"
 }
 
-# ---------------- СТАРТ ---------------- #
+# ====================== СОСТОЯНИЯ ======================
+class Form(StatesGroup):
+    waiting_for_file = State()
 
+# ====================== ХЕНДЛЕРЫ ======================
 @dp.message(Command("start"))
-async def start_handler(message: Message):
+async def start_handler(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(
-        "Отправь слова через запятую.\n"
-        "Потом отправь Excel файл (.xlsx)"
+        "Отправь список артикулов через запятую.\n"
+        "После этого отправь Excel файл (.xlsx)"
     )
-
-# ---------------- ПРИЁМ СЛОВ ---------------- #
 
 @dp.message(F.text)
-async def save_words(message: Message):
-    words = [w.strip() for w in message.text.split(",")]
-    user_words[message.from_user.id] = words
-    await message.answer("Слова сохранены. Теперь отправь Excel файл.")
-
-# ---------------- ПРИЁМ ФАЙЛА ---------------- #
-
-@dp.message(F.document)
-async def handle_document(message: Message):
-
-    if message.from_user.id not in user_words:
-        await message.answer("Сначала отправь список слов.")
+async def save_words(message: Message, state: FSMContext):
+    words = [w.strip() for w in message.text.split(",") if w.strip()]
+    if not words:
+        await message.answer("Пожалуйста, отправь хотя бы один артикул.")
         return
 
-    if not message.document.file_name.endswith(".xlsx"):
-        await message.answer("Нужен файл формата .xlsx")
+    await state.update_data(user_words=words)
+    await state.set_state(Form.waiting_for_file)
+    await message.answer(f"✅ Сохранено {len(words)} артикулов.\n\nТеперь отправь Excel файл (.xlsx)")
+
+@dp.message(F.document, Form.waiting_for_file)
+async def handle_document(message: Message, state: FSMContext):
+    if not message.document.file_name.lower().endswith(('.xlsx', '.xls')):
+        await message.answer("❌ Нужен файл формата .xlsx или .xls")
         return
 
-    await message.answer("Файл получен. Обработка началась...")
+    await message.answer("Файл получен. Начинаю обработку...")
 
-    file = await bot.get_file(message.document.file_id)
-    downloaded_file = await bot.download_file(file.file_path)
+    try:
+        data = await state.get_data()
+        user_words = data.get("user_words", [])
 
-    df = pd.read_excel(downloaded_file)
+        file = await bot.get_file(message.document.file_id)
+        downloaded = await bot.download_file(file.file_path)
+        df = pd.read_excel(downloaded)
 
-    col_F = 5
-    col_AI = 34
-    col_AK = 36
+        col_article = 5
+        col_quantity = 34
+        col_value = 36
 
-    results_by_group = {}
-    avg_values = []
-    total_sum = 0
+        results_by_group = {}
+        avg_values = []
+        total_sum = 0
 
-    for group_name, group_words in groups.items():
-        results_by_group[group_name] = []
+        for group_name, group_list in groups.items():
+            relevant = [word for word in group_list if word in user_words]
+            if not relevant:
+                continue
 
-        for word in group_words:
+            results_by_group[group_name] = []
+            for word in relevant:
+                filtered = df[
+                    (df.iloc[:, col_article] == word) &
+                    (df.iloc[:, col_quantity] > 0)
+                ]
 
-            filtered = df[
-                (df.iloc[:, col_F] == word) &
-                (df.iloc[:, col_AI] > 0)
-            ]
+                if filtered.empty:
+                    results_by_group[group_name].append([word, None, None, None, None])
+                else:
+                    max_val = filtered.iloc[:, col_value].max()
+                    min_val = filtered.iloc[:, col_value].min()
+                    avg_val = filtered.iloc[:, col_value].mean()
+                    sum_val = filtered.iloc[:, col_quantity].sum()
 
-            if filtered.empty:
-                max_val = min_val = avg_val = sum_val = 0
-            else:
-                max_val = filtered.iloc[:, col_AK].max()
-                min_val = filtered.iloc[:, col_AK].min()
-                avg_val = filtered.iloc[:, col_AK].mean()
-                sum_val = filtered.iloc[:, col_AI].sum()
+                    results_by_group[group_name].append([word, max_val, min_val, avg_val, sum_val])
+                    avg_values.append(avg_val)
+                    total_sum += sum_val
 
-                avg_values.append(avg_val)
-                total_sum += sum_val
+        average_of_averages = sum(avg_values) / len(avg_values) if avg_values else 0
 
-            results_by_group[group_name].append(
-                [word, max_val, min_val, avg_val, sum_val]
-            )
+        # ====================== EXCEL ======================
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Отчёт"
 
-    average_of_averages = (
-        sum(avg_values) / len(avg_values)
-        if avg_values else 0
-    )
+        yesterday = datetime.now() - timedelta(days=1)
+        ws.merge_cells("A1:E1")
+        ws["A1"] = f"Отчёт за {yesterday.strftime('%d.%m.%Y')}"
+        ws["A1"].font = Font(size=14, bold=True)
+        ws["A1"].alignment = Alignment(horizontal="center")
 
-    # -------- СОЗДАНИЕ EXCEL -------- #
+        ws.append(["Артикул", "Макс.", "Мин.", "Среднее", "Доставки (шт.)"])
+        for cell in ws[2]:
+            cell.font = Font(bold=True)
 
-    wb = Workbook()
-    ws = wb.active
-
-    yesterday = datetime.now() - timedelta(days=1)
-    date_text = yesterday.strftime("%d.%m.%Y")
-
-    ws.merge_cells("A1:E1")
-    ws["A1"] = f"За {date_text}"
-    ws["A1"].font = Font(size=14, bold=True)
-    ws["A1"].alignment = Alignment(horizontal="right")
-
-    ws.append(["Слово", "Макс.", "Мин.", "Среднее", "Доставки шт."])
-
-    current_row = 3
-
-    for group_name, rows in results_by_group.items():
-
-        ws.cell(row=current_row, column=1, value=group_name)
-        ws.cell(row=current_row, column=1).font = Font(bold=True)
-        current_row += 1
-
-        fill = PatternFill(
-            start_color=group_colors[group_name],
-            end_color=group_colors[group_name],
-            fill_type="solid"
-        )
-
-        for row_data in rows:
-            for col_index, value in enumerate(row_data, start=1):
-                cell = ws.cell(row=current_row, column=col_index, value=value)
-                cell.fill = fill
-                cell.alignment = Alignment(horizontal="center")
+        current_row = 3
+        for group_name, rows in results_by_group.items():
+            ws.cell(row=current_row, column=1, value=group_name).font = Font(bold=True, size=12)
             current_row += 1
 
-    current_row += 1
-    ws.cell(row=current_row, column=1, value="Всего доставок шт.")
-    ws.cell(row=current_row, column=5, value=total_sum)
+            fill = PatternFill(start_color=group_colors[group_name], end_color=group_colors[group_name], fill_type="solid")
 
-    current_row += 1
-    ws.cell(row=current_row, column=1, value="Среднее от среднего")
-    ws.cell(row=current_row, column=4, value=average_of_averages)
+            for row_data in rows:
+                for col_idx, value in enumerate(row_data, start=1):
+                    cell = ws.cell(row=current_row, column=col_idx, value=value)
+                    cell.fill = fill
+                    cell.alignment = Alignment(horizontal="center")
+                current_row += 1
 
-    for column_cells in ws.iter_cols(min_row=2):
-        max_length = 0
-    for cell in column_cells:
-        if cell.value is not None:
-            max_length = max(max_length, len(str(cell.value)))
-    col_letter = column_cells[0].column_letter
-    ws.column_dimensions[col_letter].width = max_length + 2
+        current_row += 1
+        ws.cell(row=current_row, column=1, value="Всего доставок (шт.)").font = Font(bold=True)
+        ws.cell(row=current_row, column=5, value=total_sum)
 
-    file_name = "result.xlsx"
-    wb.save(file_name)
+        current_row += 1
+        ws.cell(row=current_row, column=1, value="Среднее от среднего").font = Font(bold=True)
+        ws.cell(row=current_row, column=4, value=round(average_of_averages, 2))
 
-    await message.answer_document(types.FSInputFile(file_name))
+        # ====================== АВТОШИРИНА КОЛОНОК (ИСПРАВЛЕНО) ======================
+        for idx, column in enumerate(ws.columns, 1):
+            max_length = 0
+            for cell in column:
+                if cell.value is not None:
+                    max_length = max(max_length, len(str(cell.value)))
+            column_letter = get_column_letter(idx)
+            ws.column_dimensions[column_letter].width = max_length + 3
 
-# ---------------- ЗАПУСК ---------------- #
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
 
+        file_name = f"отчёт_{yesterday.strftime('%d%m%Y')}.xlsx"
+        await message.answer_document(
+            BufferedInputFile(output.getvalue(), filename=file_name),
+            caption="✅ Отчёт готов!"
+        )
+
+        await state.clear()
+
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+        await message.answer(f"❌ Ошибка:\n{str(e)}")
+        await state.clear()
+
+
+# ====================== ЗАПУСК ======================
 async def main():
-    await dp.start_polling(bot)
+    await dp.start_polling(
+        bot,
+        skip_updates=True,
+        drop_pending_updates=True,
+        allowed_updates=dp.resolve_used_update_types()
+    )
 
 if __name__ == "__main__":
     asyncio.run(main())
-
