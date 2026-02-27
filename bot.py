@@ -146,7 +146,7 @@ async def handle_document(message: Message, state: FSMContext):
                 current_row += 1
 
         current_row += 1
-        ws.cell(row=current_row, column=1, value="Всего доставок (шт.)").font = Font(bold=True)
+        ws.cell(row=current_row, column=1, value="Доставок (шт.)").font = Font(bold=True)
         ws.cell(row=current_row, column=5, value=total_sum)
 
         current_row += 1
@@ -191,3 +191,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
