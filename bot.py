@@ -35,12 +35,14 @@ groups = {
     "Песок": ["costum-black","costum-blue","costum-brown","costum-green","costum-grey","costum-olive"],
     "Шанель": ["flax-beige","flax-blue","flax-brown","flax-green","flax-grey"],
     "Шорты": ["short1beige","short1blue","short1fuksia","short1green","short-haki","short-brown","short-black","short-mentol23"],
-    "Комбез": ["office-grey","office-dark blue", "office-beige", "plecho-pants-white", "plecho-pants-yellow", "plecho-pants-dark blue", "plecho-pants-bork"]
+    "Комбез": ["office-grey","office-dark blue", "office-beige", "plecho-pants-white", "plecho-pants-yellow", "plecho-pants-dark blue", "plecho-pants-bork"],
+    "Шанель": ["zara-blue","zara-brown","zara-beige"]
 }
 
 group_colors = {
     "Пальто": "FFF2CC", "Куртки": "F8CBAD", "двойка топ с завязками": "BDD7EE",
-    "Песок": "FCE4D6", "Шанель": "E2EFDA", "Шорты": "D9E1F2", "Комбез": "F8CBAD"
+    "Песок": "FCE4D6", "Шанель": "E2EFDA", "Шорты": "D9E1F2", "Комбез": "F8CBAD",
+    "Шанель": "BDD7EE"
 }
 
 # ====================== СОСТОЯНИЯ ======================
