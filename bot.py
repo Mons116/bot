@@ -36,7 +36,8 @@ groups = {
     "Шанель": ["flax-beige","flax-blue","flax-brown","flax-green","flax-grey"],
     "Шорты": ["short1beige","short1blue","short1fuksia","short1green","short-haki","short-brown","short-black","short-mentol23"],
     "Комбез": ["office-grey","office-dark blue", "office-beige", "plecho-pants-white", "plecho-pants-yellow", "plecho-pants-dark blue", "plecho-pants-bork"],
-    "Зара": ["zara-blue","zara-brown","zara-beige"]
+    "Зара": ["zara-blue","zara-brown","zara-beige"],
+    "франц.лен": ["french-mocha","french-dark blue","french-blue", "french-bork"]
 }
 
 group_colors = {
@@ -47,7 +48,9 @@ group_colors = {
     "Шанель": "E2EFDA",
     "Шорты": "D9E1F2",
     "Комбез": "F4B084",
-    "Зара": "C6E0B4"
+    "Зара": "C6E0B4",
+    "франц.лен": "E2EFDA"
+    
 }
 
 # ====================== СОСТОЯНИЯ ======================
