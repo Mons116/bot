@@ -35,9 +35,10 @@ groups = {
     "Песок": ["costum-black","costum-blue","costum-brown","costum-green","costum-grey","costum-olive"],
     "Шанель": ["flax-beige","flax-blue","flax-brown","flax-green","flax-grey"],
     "Шорты": ["short1beige","short1blue","short1fuksia","short1green","short-haki","short-brown","short-black","short-mentol23"],
-    "Комбез": ["office-grey","office-dark blue", "office-beige", "plecho-pants-white", "plecho-pants-yellow", "plecho-pants-dark blue", "plecho-pants-bork"],
+    "Комбез": ["office-grey","office-dark blue", "office-beige", "plecho-pants-white", "plecho-pants-yellow", "plecho-pants-dark blue", "plecho-pants-bork", "komb(на запах)- beige", "komb(на запах)-dark blue", "komb(на запах)-bork"],
     "Зара": ["zara-blue","zara-brown","zara-beige"],
-    "франц.лен": ["french-mocha","french-dark blue","french-blue", "french-bork"]
+    "франц.лен": ["french-mocha","french-dark blue","french-blue", "french-bork"],
+    "платья": ["dress-yellow", "dress-black", "dress-blue", "dress-white"]
 }
 
 group_colors = {
@@ -49,7 +50,8 @@ group_colors = {
     "Шорты": "D9E1F2",
     "Комбез": "F4B084",
     "Зара": "C6E0B4",
-    "франц.лен": "E2EFDA"
+    "франц.лен": "E2EFDA",
+    "платья": "F8CBAD"
     
 }
 
