@@ -38,7 +38,9 @@ groups = {
     "Комбез": ["office-grey","office-dark blue", "office-beige", "plecho-pants-white", "plecho-pants-yellow", "plecho-pants-dark blue", "plecho-pants-bork", "komb(на запах)- beige", "komb(на запах)-dark blue", "komb(на запах)-bork"],
     "Зара": ["zara-blue","zara-brown","zara-beige"],
     "франц.лен": ["french-mocha","french-dark blue","french-blue", "french-bork"],
-    "платья": ["dress-yellow", "dress-black", "dress-blue", "dress-white"]
+    "платья": ["dress-yellow", "dress-black", "dress-blue", "dress-white"],
+    "три пуговицы": ["japan-white", "japan-beige", "japan-brown"],
+    "хлопок": ["shorts strip-blue", "shorts strip-pink", "shorts strip-yellow", "shorts varenka-blue", "shorts varenka-pink", "shorts varenka-brown"]
 }
 
 group_colors = {
@@ -51,7 +53,9 @@ group_colors = {
     "Комбез": "F4B084",
     "Зара": "C6E0B4",
     "франц.лен": "E2EFDA",
-    "платья": "F8CBAD"
+    "платья": "F8CBAD",
+    "три пуговицы": "E2EFDA",
+    "хлопок": "F8CBAD"
     
 }
 
