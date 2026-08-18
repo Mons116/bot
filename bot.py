@@ -18,7 +18,7 @@ from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 
-TOKEN = "8834700071:AAFOb-7z7cqMh0jcOK2bVNFjEMnjaUcgIIc"
+TOKEN = ""
 
 logging.basicConfig(level=logging.INFO)
 
