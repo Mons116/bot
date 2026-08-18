@@ -18,7 +18,7 @@ from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = "8834700071:AAFOb-7z7cqMh0jcOK2bVNFjEMnjaUcgIIc"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,7 +29,7 @@ dp = Dispatcher(storage=storage)
 # ====================== ГРУППЫ ======================
 
 groups = {
-    "Пальто": ["drap_2-beige","drap_2-black","drap_2-grey","drap-beige","drap-brown","drap-grey","drap-black","coat-jacket-beige","coat-jacket-grey","coat-jacket-brown","drap_3(belt)-grey","drap_3(belt)-brown","drap_3(belt)-grafit","drap_3(belt)-beige"],
+    "Пальто": ["drap_2-beige","drap_2-black","drap_2-grey","drap_2-brown","drap-beige","drap-red","drap-dark_grey","drap-brown","drap-grey","drap-black","coat-jacket-beige","coat-jacket-grey","coat-jacket-brown","drap_3(belt)-grey","drap_3(belt)-brown","drap_3(belt)-grafit","drap_3(belt)-beige"],
     "Куртки": ["suede-ohra","suede-milk","suede-brown","bomber-ohra","bomber-brown","bomber-milk"],
     "двойка топ с завязками": ["bows-blue","bows-cappuccino","bows-haki"],
     "Песок": ["costum-black","costum-blue","costum-brown","costum-green","costum-grey","costum-olive"],
